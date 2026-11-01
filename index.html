@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="km">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>DramaDub AI - Khmer Studio</title>
+  
+  <!-- PWA Meta Tags សម្រាប់ iPhone -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="DramaDub AI">
+  
+  <!-- Tailwind CSS & Icons & Fonts -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@400;600&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            khmer: ['"Kantumruy Pro"', 'sans-serif'],
+            chinese: ['"Noto Sans SC"', 'sans-serif'],
+            mono: ['"Space Grotesk"', 'monospace']
+          },
+          colors: {
+            obsidian: '#0b0f19',
+            surface: 'rgba(18, 24, 38, 0.85)',
+            surfaceBorder: 'rgba(255, 255, 255, 0.08)',
+            neonCyan: '#00f2fe',
+            neonViolet: '#8a2be2',
+            neonPink: '#ff007f'
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      background-color: #07090e;
+      font-family: 'Kantumruy Pro', sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .glassmorphism {
+      background: rgba(16, 22, 36, 0.75);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+    }
+    .sticky-player {
+      position: sticky;
+      top: 0;
+      z-index: 40;
+    }
+    /* ទប់កុំឱ្យ iPhone Auto-Zoom ពេលចុច Input */
+    input, textarea, select {
+      font-size: 16px !important;
+    }
+    .waveform-bar {
+      animation: wave 1.2s ease-in-out infinite alternate;
+    }
+    @keyframes wave {
+      0% { height: 4px; }
+      100% { height: 24px; }
+    }
+  </style>
+</head>
+<body class="text-slate-100 min-h-screen pb-28 selection:bg-neonCyan/30">
+
+  <!-- TOP APP BAR -->
+  <header class="glassmorphism sticky top-0 z-50 px-4 py-3 flex items-center justify-between border-b border-white/10">
+    <div class="flex items-center gap-2">
+      <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-neonCyan to-neonViolet flex items-center justify-center shadow-lg shadow-neonCyan/20">
+        <i class="fa-solid fa-wand-magic-sparkles text-black text-sm"></i>
+      </div>
+      <div>
+        <h1 class="font-bold text-base tracking-wide bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent leading-none">DramaDub AI</h1>
+        <p class="text-[10px] text-neonCyan font-mono mt-0.5">CHINESE → KHMER DUB</p>
+      </div>
+    </div>
+    
+    <!-- Custom Voice Upload Button -->
+    <button onclick="openCustomVoiceModal()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-neonViolet/20 border border-neonViolet/40 text-xs font-medium text-purple-300 active:scale-95 transition-all">
+      <i class="fa-solid fa-microphone-lines text-neonCyan"></i>
+      <span>សំឡេងផ្ទាល់ខ្លួន</span>
+    </button>
+  </header>
+
+  <!-- MAIN CONTAINER -->
+  <main class="max-w-xl mx-auto px-3.5 space-y-4 pt-3">
+
+    <!-- 1. STICKY VIDEO PLAYER -->
+    <div class="sticky-player glassmorphism rounded-2xl overflow-hidden shadow-2xl border border-white/10">
+      <div class="relative aspect-video bg-black/90 flex items-center justify-center overflow-hidden">
+        <img id="videoPreviewThumb" src="https://images.unsplash.com/photo-1578632767115-351597cf2477?w=800&auto=format&fit=crop&q=80" alt="Video Scene" class="w-full h-full object-cover opacity-60">
+        
+        <!-- Live Chinese Subtitle on Screen -->
+        <div class="absolute bottom-10 inset-x-4 text-center pointer-events-none">
+          <p class="text-sm font-chinese text-yellow-300 drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">王爷，这是边关刚刚送来的八百里加急战报！</p>
+          <p class="text-xs font-khmer text-white font-medium mt-0.5 drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] bg-black/50 inline-block px-2 py-0.5 rounded">"លោកម្ចាស់! នេះជារបាយការណ៍បន្ទាន់ពីសមរភូមិព្រំដែន!"</p>
+        </div>
+
+        <!-- Video Controls Overlay -->
+        <div class="absolute inset-0 flex items-center justify-center">
+          <button id="playBtn" onclick="togglePlay()" class="w-12 h-12 rounded-full bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center text-white text-lg shadow-lg active:scale-90 transition-transform">
+            <i class="fa-solid fa-play ml-0.5"></i>
+          </button>
+        </div>
+
+        <!-- Waveform Status Bar -->
+        <div class="absolute top-2.5 left-3 flex items-center gap-2 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/10">
+          <div class="flex items-center gap-0.5 h-3">
+            <span class="w-0.5 bg-neonCyan waveform-bar" style="animation-delay: 0.1s;"></span>
+            <span class="w-0.5 bg-neonCyan waveform-bar" style="animation-delay: 0.3s;"></span>
+            <span class="w-0.5 bg-neonCyan waveform-bar" style="animation-delay: 0.2s;"></span>
+          </div>
+          <span class="text-[11px] font-mono text-slate-300">AI Synced 00:01:14</span>
+        </div>
+
+        <!-- Toggle Track (ចិន vs ខ្មែរ) -->
+        <div class="absolute top-2.5 right-3 flex items-center bg-black/60 backdrop-blur-md p-0.5 rounded-lg border border-white/10 text-[11px]">
+          <button class="px-2 py-0.5 rounded font-medium bg-neonCyan text-black">សំឡេងខ្មែរ</button>
+          <button class="px-2 py-0.5 rounded font-medium text-slate-400">ចិនដើម</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. QUICK ACTIONS / AUTO PIPELINE -->
+    <div class="glassmorphism rounded-xl p-3 flex items-center justify-between text-xs border border-white/5">
+      <div class="flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+        <span class="text-slate-300">Whisper + Gemini Pro + Khmer TTS</span>
+      </div>
+      <button onclick="runAutoSegmentation()" class="text-neonCyan hover:underline flex items-center gap-1 text-[11px]">
+        <i class="fa-solid fa-spell-check"></i>
+        <span>ដកឃ្លាខ្មែរស្វ័យប្រវត្តិ</span>
+      </button>
+    </div>
+
+    <!-- 3. SUBTITLE & VOICE DUB CARDS (MOBILE FIRST LIST) -->
+    <div class="space-y-3" id="cardsContainer">
+
+      <!-- CARD 1 -->
+      <div class="glassmorphism rounded-2xl p-3.5 border border-white/10 relative space-y-2.5 shadow-lg">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="px-2 py-0.5 rounded-md bg-white/10 text-[11px] font-mono text-neonCyan">00:01:12 - 00:01:16</span>
+            <span class="text-[10px] px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">កម្សត់ / តក់ស្លុត</span>
+          </div>
+          <!-- Line Audio Play Button -->
+          <button onclick="playSnippet(1)" class="w-8 h-8 rounded-full bg-neonCyan/20 text-neonCyan border border-neonCyan/30 flex items-center justify-center active:scale-90 transition-transform">
+            <i class="fa-solid fa-volume-high text-xs"></i>
+          </button>
+        </div>
+
+        <!-- Chinese Source -->
+        <div class="bg-black/30 p-2 rounded-lg border border-white/5">
+          <p class="font-chinese text-sm text-slate-200">王爷，这是边关刚刚送来的八百里加急战报！</p>
+          <p class="text-[10px] text-slate-400 font-mono">Wángyé, zhè shì biānguān gānggāng sòng lái de bābǎilǐ jiājí zhànbào!</p>
+        </div>
+
+        <!-- Khmer Editable Translation (Font 16px to prevent iOS Zoom) -->
+        <div>
+          <label class="block text-[11px] text-slate-400 mb-1 flex items-center justify-between">
+            <span>អត្ថបទបកប្រែជាភាសាខ្មែរ (ចុចកែបាន)៖</span>
+            <span class="text-[10px] text-emerald-400"><i class="fa-solid fa-check"></i> ត្រួតពិនិត្យរួច</span>
+          </label>
+          <textarea rows="2" class="w-full bg-slate-900/80 rounded-xl p-2.5 text-base text-slate-100 border border-white/10 focus:border-neonCyan focus:ring-1 focus:ring-neonCyan outline-none font-khmer transition-all">លោក ម្ចាស់! នេះ ជា របាយការណ៍ បន្ទាន់ ពី សមរភូមិ ព្រំដែន ទើប តែ មក ដល់!</textarea>
+        </div>
+
+        <!-- Speaker Selector -->
+        <div class="flex items-center justify-between pt-1 border-t border-white/5">
+          <button onclick="openVoiceSheet(1)" class="flex items-center gap-2 text-xs text-slate-300 bg-white/5 px-2.5 py-1.5 rounded-lg active:bg-white/10">
+            <i class="fa-solid fa-user-tie text-neonCyan"></i>
+            <span id="voiceLabel-1">សំឡេង៖ តួឯកប្រុស (សំឡេងមេទ័ព)</span>
+            <i class="fa-solid fa-chevron-down text-[10px] text-slate-400 ml-1"></i>
+          </button>
+          
+          <button onclick="regenerateAudio(1)" class="text-xs text-neonPink hover:text-pink-300 flex items-center gap-1">
+            <i class="fa-solid fa-rotate"></i>
+            <span>Re-Dub</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- CARD 2 (Custom Voice Test Sample) -->
+      <div class="glassmorphism rounded-2xl p-3.5 border border-white/10 relative space-y-2.5 shadow-lg">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="px-2 py-0.5 rounded-md bg-white/10 text-[11px] font-mono text-neonCyan">00:01:17 - 00:01:21</span>
+            <span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">ម៉ឺងម៉ាត់</span>
+          </div>
+          <button onclick="playSnippet(2)" class="w-8 h-8 rounded-full bg-neonCyan/20 text-neonCyan border border-neonCyan/30 flex items-center justify-center active:scale-90 transition-transform">
+            <i class="fa-solid fa-volume-high text-xs"></i>
+          </button>
+        </div>
+
+        <div class="bg-black/30 p-2 rounded-lg border border-white/5">
+          <p class="font-chinese text-sm text-slate-200">传令下去，三军即刻备战，违令者斩！</p>
+          <p class="text-[10px] text-slate-400 font-mono">Chuánlìng xiàqù, sān jūn jíkè bèizhàn, wéilìng zhě zhǎn!</p>
+        </div>
+
+        <div>
+          <label class="block text-[11px] text-slate-400 mb-1">អត្ថបទបកប្រែជាភាសាខ្មែរ (ចុចកែបាន)៖</label>
+          <textarea rows="2" class="w-full bg-slate-900/80 rounded-xl p-2.5 text-base text-slate-100 border border-white/10 focus:border-neonCyan focus:ring-1 focus:ring-neonCyan outline-none font-khmer transition-all">បញ្ជូន បញ្ជា ភ្លាម! កងទ័ព ទាំងបី ត្រូវ ត្រៀម ប្រយុទ្ធ អ្នកណា ហ៊ាន ជំទាស់ ត្រូវ ប្រហារជីវិត!</textarea>
+        </div>
+
+        <div class="flex items-center justify-between pt-1 border-t border-white/5">
+          <button onclick="openVoiceSheet(2)" class="flex items-center gap-2 text-xs text-purple-300 bg-purple-500/10 px-2.5 py-1.5 rounded-lg border border-purple-500/30 active:bg-purple-500/20">
+            <i class="fa-solid fa-star text-yellow-400"></i>
+            <span id="voiceLabel-2">សំឡេងផ្ទាល់ខ្លួន៖ សំឡេងតេស្ត (My Voice)</span>
+            <i class="fa-solid fa-chevron-down text-[10px] text-slate-400 ml-1"></i>
+          </button>
+          
+          <button onclick="regenerateAudio(2)" class="text-xs text-neonPink hover:text-pink-300 flex items-center gap-1">
+            <i class="fa-solid fa-rotate"></i>
+            <span>Re-Dub</span>
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- 4. FIXED BOTTOM ACTION BAR (THUMB ZONE) -->
+  <div class="fixed bottom-0 inset-x-0 glassmorphism border-t border-white/10 p-3 z-50">
+    <div class="max-w-xl mx-auto flex items-center gap-3">
+      <button onclick="previewAllAudio()" class="w-12 h-12 rounded-xl bg-white/10 border border-white/15 flex flex-col items-center justify-center text-slate-200 active:scale-95 transition-all">
+        <i class="fa-solid fa-headphones text-sm text-neonCyan"></i>
+        <span class="text-[9px] mt-0.5">ស្ដាប់រួម</span>
+      </button>
+
+      <button onclick="startRender()" class="flex-1 h-12 rounded-xl bg-gradient-to-r from-neonCyan via-blue-500 to-neonViolet text-black font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-neonCyan/20 active:scale-95 transition-all">
+        <i class="fa-solid fa-film"></i>
+        <span>Render វីដេអូ & សំឡេងខ្មែរ (1080p)</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- 5. BOTTOM SHEET: VOICE SELECTOR (NATIVE IOS FEEL) -->
+  <div id="voiceSheetBackdrop" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden transition-opacity" onclick="closeVoiceSheet()"></div>
+  <div id="voiceBottomSheet" class="fixed inset-x-0 bottom-0 max-w-xl mx-auto glassmorphism rounded-t-3xl border-t border-white/20 p-5 z-50 transform translate-y-full transition-transform duration-300 ease-out space-y-4">
+    <div class="w-10 h-1 bg-white/30 rounded-full mx-auto"></div>
+    <div class="flex items-center justify-between">
+      <h3 class="font-bold text-base text-white">ជ្រើសរើសសំឡេងសម្រាប់បន្ទាត់នេះ</h3>
+      <button onclick="closeVoiceSheet()" class="text-slate-400 hover:text-white p-1"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+
+    <!-- Voice Options -->
+    <div class="space-y-2 max-h-72 overflow-y-auto pr-1">
+      <!-- Custom Voice Item -->
+      <div onclick="selectVoice('សំឡេងផ្ទាល់ខ្លួន៖ សំឡេងតេស្ត (My Voice)')" class="p-3 rounded-xl bg-purple-500/10 border border-purple-500/40 flex items-center justify-between cursor-pointer active:bg-purple-500/20">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-full bg-purple-500/30 flex items-center justify-center text-purple-300">
+            <i class="fa-solid fa-star text-yellow-400"></i>
+          </div>
+          <div>
+            <p class="font-medium text-sm text-white">សំឡេងផ្ទាល់ខ្លួន (My Voice Clone)</p>
+            <p class="text-[11px] text-purple-300 font-mono">ElevenLabs / Voice Sample #1</p>
+          </div>
+        </div>
+        <span class="text-xs bg-purple-500/30 text-purple-200 px-2 py-0.5 rounded">កំពុងប្រើ</span>
+      </div>
+
+      <!-- Presets -->
+      <div onclick="selectVoice('តួឯកប្រុស (សំឡេងមេទ័ព)')" class="p-3 rounded-xl bg-white/5 border border-white/10 flex items-center justify-between cursor-pointer active:bg-white/10">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-full bg-blue-500/20 flex items-center justify-center text-neonCyan">
+            <i class="fa-solid fa-user-shield"></i>
+          </div>
+          <div>
+            <p class="font-medium text-sm text-white">តួឯកប្រុស (សំឡេងមេទ័ព/អំណាច)</p>
+            <p class="text-[11px] text-slate-400">Edge-TTS (km-KH-PisethNeural)</p>
+          </div>
+        </div>
+      </div>
+
+      <div onclick="selectVoice('តួឯកស្រី (សំឡេងស្រទន់)')" class="p-3 rounded-xl bg-white/5 border border-white/10 flex items-center justify-between cursor-pointer active:bg-white/10">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-full bg-pink-500/20 flex items-center justify-center text-pink-400">
+            <i class="fa-solid fa-user"></i>
+          </div>
+          <div>
+            <p class="font-medium text-sm text-white">តួឯកស្រី (សំឡេងស្រទន់/មនោសញ្ចេតនា)</p>
+            <p class="text-[11px] text-slate-400">Edge-TTS (km-KH-SreymomNeural)</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. MODAL: UPLOAD / RECORD CUSTOM VOICE -->
+  <div id="customVoiceModal" class="fixed inset-0 bg-black/70 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+    <div class="glassmorphism max-w-sm w-full rounded-2xl p-5 border border-white/15 space-y-4 shadow-2xl">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <i class="fa-solid fa-microphone-lines text-neonCyan"></i>
+          <h3 class="font-bold text-white text-base">ស្ទូឌីយោសំឡេងផ្ទាល់ខ្លួន</h3>
+        </div>
+        <button onclick="closeCustomVoiceModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <p class="text-xs text-slate-300">អ្នកអាច Upload ឯកសារសំឡេង ឬថតសំឡេងផ្ទាល់ដើម្បីឱ្យ AI Clone សំឡេងអ្នកមកបញ្ចូលក្នុងរឿងភាគ៖</p>
+
+      <!-- Upload File Drop Area -->
+      <label class="border-2 border-dashed border-white/20 rounded-xl p-4 flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-neonCyan/50 transition-colors bg-white/5">
+        <i class="fa-solid fa-cloud-arrow-up text-2xl text-neonCyan"></i>
+        <span class="text-xs text-slate-300 font-medium">ជ្រើសរើស File សំឡេង (.MP3, .WAV, .M4A)</span>
+        <span class="text-[10px] text-slate-400">ប្រវែងល្អបំផុត៖ 30 វិនាទី - 2 នាទី (សំឡេងច្បាស់)</span>
+        <input type="file" id="voiceFileInput" accept="audio/*" class="hidden" onchange="handleVoiceUpload(event)">
+      </label>
+
+      <!-- Or Record Live -->
+      <div class="text-center">
+        <span class="text-[11px] text-slate-500 font-mono">- ឬថតផ្ទាល់លើ iPhone -</span>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button id="recordBtn" onclick="toggleRecord()" class="flex-1 py-2.5 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-300 text-xs font-semibold flex items-center justify-center gap-2 active:scale-95 transition-all">
+          <i class="fa-solid fa-circle text-[10px] text-rose-500 animate-ping"></i>
+          <span id="recordText">ចាប់ផ្ដើមថត</span>
+        </button>
+      </div>
+
+      <div id="uploadStatus" class="hidden text-center text-xs text-emerald-400 font-medium pt-1">
+        <i class="fa-solid fa-check-circle"></i> បានបញ្ចូល និងរៀបចំសំឡេងជោគជ័យ!
+      </div>
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT LOGIC -->
+  <script>
+    let currentEditingCard = 1;
+
+    // Toggle Play Video
+    function togglePlay() {
+      const btn = document.querySelector('#playBtn i');
+      if (btn.classList.contains('fa-play')) {
+        btn.classList.remove('fa-play');
+        btn.classList.add('fa-pause');
+      } else {
+        btn.classList.remove('fa-pause');
+        btn.classList.add('fa-play');
+      }
+    }
+
+    // Play Individual Snippet
+    function playSnippet(id) {
+      alert("កំពុងចាក់សំឡេងខ្មែរគំរូនៃបន្ទាត់ទី " + id);
+    }
+
+    // Bottom Sheet Controls
+    function openVoiceSheet(cardId) {
+      currentEditingCard = cardId;
+      document.getElementById('voiceSheetBackdrop').classList.remove('hidden');
+      const sheet = document.getElementById('voiceBottomSheet');
+      sheet.classList.remove('translate-y-full');
+    }
+
+    function closeVoiceSheet() {
+      document.getElementById('voiceSheetBackdrop').classList.add('hidden');
+      document.getElementById('voiceBottomSheet').classList.add('translate-y-full');
+    }
+
+    function selectVoice(voiceName) {
+      document.getElementById('voiceLabel-' + currentEditingCard).innerText = voiceName;
+      closeVoiceSheet();
+    }
+
+    // Custom Voice Modal
+    function openCustomVoiceModal() {
+      document.getElementById('customVoiceModal').classList.remove('hidden');
+    }
+
+    function closeCustomVoiceModal() {
+      document.getElementById('customVoiceModal').classList.add('hidden');
+    }
+
+    function handleVoiceUpload(event) {
+      const file = event.target.files[0];
+      if (file) {
+        document.getElementById('uploadStatus').classList.remove('hidden');
+        setTimeout(() => {
+          closeCustomVoiceModal();
+          alert("សំឡេងរបស់ '" + file.name + "' ត្រូវបានបញ្ចូលទៅក្នុង Custom Voice Slot រួចរាល់!");
+        }, 1200);
+      }
+    }
+
+    // Toggle Record
+    let isRecording = false;
+    function toggleRecord() {
+      isRecording = !isRecording;
+      const text = document.getElementById('recordText');
+      if (isRecording) {
+        text.innerText = "កំពុងថត... (ចុចដើម្បីឈប់)";
+      } else {
+        text.innerText = "ចាប់ផ្ដើមថត";
+        document.getElementById('uploadStatus').classList.remove('hidden');
+        setTimeout(() => {
+          closeCustomVoiceModal();
+          alert("ការថតសំឡេងត្រូវបានរក្សាទុក និងបង្កើត Voice Clone រួចរាល់!");
+        }, 1000);
+      }
+    }
+
+    // Auto Spacing / Segmentation
+    function runAutoSegmentation() {
+      alert("បានដំណើរការ Khmer Word Segmentation៖ អត្ថបទខ្មែរត្រូវបានកាត់ឃ្លាដោយដកឃ្លា (Zero-width / Spaces) ស្វ័យប្រវត្តិកុំឱ្យទាក់សំឡេង TTS!");
+    }
+
+    // Render Video
+    function startRender() {
+      alert("កំពុង Render វីដេអូកម្រិត 1080p រួមជាមួយសំឡេងខ្មែរ និងភ្លេងដើម BGM... ដំណើរការនេះនឹងផ្ញើ link ទាញយកមកទូរសព្ទរបស់អ្នក!");
+    }
+  </script>
+</body>
+</html>
